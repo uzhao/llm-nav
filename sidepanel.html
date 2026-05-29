@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <body>
+    <main class="panel">
+      <header id="panel-header" class="panel-header">
+        <span class="panel-title">LLM Nav</span>
+        <!-- collapseBtn will be injected here by sidepanel.js -->
+      </header>
+
+      <section class="actions" id="actions" aria-label="快捷操作">
+        <div class="new-chat-container">
+          <div class="split-button" id="new-chat-split">
+            <button id="new-chat-main" class="split-button-main" type="button">新建对话</button>
+            <button id="new-chat-caret" class="split-button-caret" type="button" aria-label="切换 provider">▾</button>
+            <ul id="provider-dropdown" class="dropdown hidden" role="menu"></ul>
+          </div>
+        </div>
+        <div id="quick-actions" class="quick-actions"></div>
+      </section>
+
+      <p id="notice" class="notice hidden"></p>
+
+      <section class="folder-header" id="folder-header" aria-label="目录区头">
+        <span class="folder-header-label">目录</span>
+        <button id="new-folder-button" class="icon-button" type="button" aria-label="新建目录" title="新建目录">+</button>
+      </section>
+      <form id="folder-form" class="folder-form hidden" autocomplete="off">
+        <input id="folder-name" name="folderName" type="text" maxlength="40" placeholder="目录名称" aria-label="目录名称">
+        <button type="submit">创建</button>
+      </form>
+
+      <section id="folders" class="folders" aria-label="对话目录"></section>
+
+      <footer class="panel-footer">
+        <button id="settings-button" class="footer-button" type="button" aria-label="设置" title="设置">
+          <span class="icon">⚙</span> 设置
+        </button>
+      </footer>
+    </main>
+
+    <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="设置">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title">设置</span>
+          <button id="settings-modal-close" class="icon-button" type="button" aria-label="关闭设置" title="关闭">×</button>
+        </div>
+        <div id="settings-modal-body" class="modal-body"></div>
+      </div>
+    </div>
+  </body>
+</html>

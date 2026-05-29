@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Navigation",
+  "version": "0.1.0",
+  "description": "本地管理 ChatGPT、Gemini 对话入口。",
+  "permissions": ["storage", "tabs", "activeTab"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*",
+    "https://claude.ai/*",
+    "https://chat.deepseek.com/*",
+    "https://grok.com/*",
+    "https://www.kimi.com/*",
+    "https://www.perplexity.ai/*",
+    "https://manus.im/*",
+    "https://app.manus.im/*"
+  ],
+  "action": {
+    "default_title": "LLM Navigation"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://claude.ai/*",
+        "https://chat.deepseek.com/*",
+        "https://grok.com/*",
+        "https://www.kimi.com/*",
+        "https://www.perplexity.ai/*",
+        "https://manus.im/*",
+        "https://app.manus.im/*"
+      ],
+      "js": [
+        "providers/chatgpt.js",
+        "providers/gemini.js",
+        "providers/claude.js",
+        "providers/deepseek.js",
+        "providers/grok.js",
+        "providers/kimi.js",
+        "providers/perplexity.js",
+        "providers/manus.js",
+        "storage-model.js",
+        "sidepanel.js",
+        "injected-sidebar.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["sidepanel.html", "sidepanel.css"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://claude.ai/*",
+        "https://chat.deepseek.com/*",
+        "https://grok.com/*",
+        "https://www.kimi.com/*",
+        "https://www.perplexity.ai/*",
+        "https://manus.im/*",
+        "https://app.manus.im/*"
+      ]
+    }
+  ]
+}
