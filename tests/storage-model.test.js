@@ -208,7 +208,7 @@ test("upsertVisibleConversations removes records missing from the current accoun
   assert.deepEqual(next.folders.archived.map((record) => record.provider), ["gemini"]);
 });
 
-test("upsertVisibleConversations keeps existing records when sync has no records", () => {
+test("upsertVisibleConversations removes existing records when sync has no records", () => {
   const state = model.createInitialState();
   state.folders.unclassified.push({
     provider: "chatgpt",
@@ -219,7 +219,7 @@ test("upsertVisibleConversations keeps existing records when sync has no records
 
   const next = model.upsertVisibleConversations(state, "chatgpt", "Jianyang Zhao", []);
 
-  assert.deepEqual(next.folders.unclassified.map((record) => record.url), ["https://chatgpt.com/c/existing"]);
+  assert.deepEqual(next.folders.unclassified, []);
 });
 
 test("filterFoldersAcrossProviders filters each provider by its active account", () => {

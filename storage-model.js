@@ -109,18 +109,16 @@
       next.activeAccounts[provider] = normalizedAccount;
     }
 
-    if (normalizedAccount !== UNKNOWN_ACCOUNT && normalizedRecords.length > 0) {
-      const visibleUrls = new Set(normalizedRecords.map((record) => record.url));
-      Object.keys(next.folders).forEach((folderName) => {
-        next.folders[folderName] = next.folders[folderName].filter((record) => {
-          if (record.provider !== provider || normalizeAccount(record.account) !== normalizedAccount) {
-            return true;
-          }
+    const visibleUrls = new Set(normalizedRecords.map((record) => record.url));
+    Object.keys(next.folders).forEach((folderName) => {
+      next.folders[folderName] = next.folders[folderName].filter((record) => {
+        if (record.provider !== provider || normalizeAccount(record.account) !== normalizedAccount) {
+          return true;
+        }
 
-          return visibleUrls.has(record.url);
-        });
+        return visibleUrls.has(record.url);
       });
-    }
+    });
 
     const newRecords = [];
 
