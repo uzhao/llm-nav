@@ -44,12 +44,13 @@ function allQuickActions() {
 }
 
 function resolveDefaultProviderName() {
-  if (pageState && pageState.supported && pageState.provider && getProvider(pageState.provider)) {
-    return pageState.provider;
-  }
-
+  // 显式选择的默认 provider 优先;只有选「跟随当前页」(auto) 时才采用当前页面 provider。
   if (settings.defaultProvider !== "auto" && getProvider(settings.defaultProvider)) {
     return settings.defaultProvider;
+  }
+
+  if (pageState && pageState.supported && pageState.provider && getProvider(pageState.provider)) {
+    return pageState.provider;
   }
 
   return settings.enabledProviders[0];

@@ -11,9 +11,9 @@
       accountDisplaySubSelector: null,
       historyRootSelector: 'nav:has(div[data-session-item="true"])',
       historyLinkSelector: 'div[data-session-item="true"]',
-      historyPathPrefix: "/",
+      historyPathPrefix: "/app/",
       urlAttribute: "data-session-id",
-      urlPrefix: "/",
+      urlPrefix: "/app/",
       titleSubSelector: "span.truncate",
       hideSidebarSelector: 'nav:has(div[data-session-item="true"])',
       hideStyleId: "llmnav-hide-manus-sidebar"

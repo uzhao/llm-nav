@@ -75,6 +75,8 @@ test("sidepanel css 保留 Google sidebar 字体与行度量", () => {
   assert.match(css, /line-height:\s*17px;/);
   assert.match(css, /-webkit-font-smoothing:\s*antialiased;/);
   assert.match(css, /\.folders\s*{[\s\S]*display:\s*flex;[\s\S]*flex-direction:\s*column;[\s\S]*padding:\s*0;/);
+  assert.match(css, /\.folders\s*{[^}]*overflow-y:\s*auto;/);
+  assert.match(css, /\.panel\s*{[^}]*[\s;{]height:\s*100vh;/);
   assert.match(css, /\.folder-row,\n\.conversation-row\s*{[\s\S]*display:\s*flex;[\s\S]*height:\s*32px;[\s\S]*border-radius:\s*9999px;[\s\S]*padding:\s*0 8px;/);
 });
 
@@ -360,6 +362,82 @@ test("sidepanel 主按钮文字跟随启用的 provider 与当前页面状态", 
   });
 
   assert.match(elements["new-chat-main"].textContent, /Gemini/);
+});
+
+test("sidepanel 显式默认 provider 优先于当前页面状态", async () => {
+  const source = readFile("sidepanel.js");
+  const providers = loadProviderRegistry();
+  let domContentLoadedListener = null;
+  const storedState = {
+    folders: { unclassified: [], archived: [] },
+    activeAccounts: {},
+    settings: {
+      defaultProvider: "gemini",
+      enabledProviders: ["chatgpt", "gemini", "claude", "deepseek", "grok", "kimi", "perplexity", "manus"],
+      enabledQuickActions: []
+    }
+  };
+
+  function createElement() {
+    return {
+      children: [],
+      classList: { add() {}, remove() {}, toggle() {} },
+      dataset: {},
+      style: {},
+      textContent: "",
+      hidden: false,
+      addEventListener() {},
+      append(...nodes) { this.children.push(...nodes); },
+      appendChild(child) { this.children.push(child); return child; },
+      replaceChildren(...nodes) { this.children = [...nodes]; },
+      focus() {},
+      setAttribute() {},
+      removeAttribute() {}
+    };
+  }
+
+  const elementIds = [
+    "actions", "settings-button", "new-chat-main", "new-chat-caret",
+    "provider-dropdown", "quick-actions", "folder-header", "new-folder-button",
+    "folder-form", "folder-name", "folders", "notice",
+    "settings-modal", "settings-modal-close", "settings-modal-body"
+  ];
+  const elements = Object.fromEntries(elementIds.map((id) => [id, createElement()]));
+
+  const context = {
+    window: { LLMNavProviders: providers },
+    chrome: {
+      runtime: {
+        onMessage: { addListener() {} },
+        sendMessage(_, cb) { cb({ supported: true, provider: "grok", hasAccount: true, account: "u@example.com", hasHistory: true }); }
+      },
+      storage: {
+        local: {
+          get() { return Promise.resolve(storedState); },
+          set() { return Promise.resolve(); }
+        },
+        onChanged: { addListener() {} }
+      },
+      tabs: { query() {} }
+    },
+    document: {
+      addEventListener(type, listener) {
+        if (type === "DOMContentLoaded") domContentLoadedListener = listener;
+      },
+      createElement,
+      getElementById(id) { return elements[id]; },
+      body: createElement()
+    },
+    LLMNavModel: model
+  };
+
+  vm.runInNewContext(source, context);
+  await context.window.LLMNavSidebar.mount(context.document, {
+    pageState: { supported: true, provider: "grok", hasAccount: true, account: "u@example.com", hasHistory: true }
+  });
+
+  assert.match(elements["new-chat-main"].textContent, /Gemini/);
+  assert.doesNotMatch(elements["new-chat-main"].textContent, /Grok/);
 });
 
 test("sidepanel 渲染启用的 quickActions 为按钮", async () => {
