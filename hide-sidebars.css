@@ -31,5 +31,10 @@ body:not(.llmnav-show-native) nav:has(div[data-session-item="true"]),
 /* Perplexity */
 body:not(.llmnav-show-native) nav[aria-label="主导航"],
 body:not(.llmnav-show-native) nav[aria-label="Main navigation"] {
-  display: none !important;
+  position: fixed !important;
+  left: -9999px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
