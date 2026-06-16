@@ -19,6 +19,7 @@
   const HOST_ID = "llmnav-host";
   const HANDLE_ID = "llmnav-handle";
   const COLLAPSE_KEY = "llmnav:sidebarCollapsed";
+  const NATIVE_SIDEBAR_KEY = "llmnav:showNative";
 
   let hostMargin = null;
   let observerStarted = false;
@@ -127,6 +128,44 @@
     return collapseStorage().get() === "1";
   }
 
+  function nativeSidebarStorage() {
+    return {
+      get: () => localStorage.getItem(NATIVE_SIDEBAR_KEY) || "0",
+      set: (value) => localStorage.setItem(NATIVE_SIDEBAR_KEY, value)
+    };
+  }
+
+  function isNativeSidebarVisible() {
+    return nativeSidebarStorage().get() === "1";
+  }
+
+  function applyNativeSidebarState() {
+    if (isNativeSidebarVisible()) {
+      document.body.classList.add("llmnav-show-native");
+    } else {
+      document.body.classList.remove("llmnav-show-native");
+    }
+  }
+
+  function setNativeSidebarVisible(visible) {
+    nativeSidebarStorage().set(visible ? "1" : "0");
+    applyNativeSidebarState();
+  }
+
+  const nativeSidebarBridge = {
+    isVisible: isNativeSidebarVisible,
+    toggle: () => {
+      const next = !isNativeSidebarVisible();
+      setNativeSidebarVisible(next);
+      if (next) {
+        collapseStorage().set("1");
+        applyCollapseClass();
+      }
+      return next;
+    },
+    onChange: null
+  };
+
   function buildHostMarginSheet() {
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(`
@@ -194,6 +233,11 @@
     handle.onclick = () => {
       collapseStorage().set("0");
       applyCollapseClass();
+
+      setNativeSidebarVisible(false);
+      if (nativeSidebarBridge.onChange) {
+        nativeSidebarBridge.onChange(false);
+      }
     };
     return handle;
   }
@@ -213,6 +257,7 @@
     }
 
     applyCollapseClass();
+    applyNativeSidebarState();
 
     const host = document.createElement("div");
     host.id = HOST_ID;
@@ -242,7 +287,8 @@
             remove: (cls) => { host.classList.remove(cls); document.body.classList.remove(cls); }
           }
         },
-        collapseStorage: collapseStorage()
+        collapseStorage: collapseStorage(),
+        nativeSidebarBridge
       });
     }
   }

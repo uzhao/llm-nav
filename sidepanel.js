@@ -13,6 +13,7 @@ let __root = null;
 let __navigate = null;
 let __collapseStorage = null;
 let __collapseHost = null;
+let __nativeSidebarBridge = null;
 
 function byId(id) {
   return (__root || document).getElementById(id);
@@ -62,9 +63,17 @@ async function init(options) {
   __navigate = (options && options.navigate) || null;
   __collapseStorage = (options && options.collapseStorage) || defaultCollapseStorage();
   __collapseHost = (options && options.collapseHost) || null;
+  __nativeSidebarBridge = (options && options.nativeSidebarBridge) || null;
   applyCollapseState(readCollapseState());
   if (!byId("settings-button")) return;
   byId("settings-button").addEventListener("click", openSettings);
+  if (byId("toggle-native-button")) {
+    byId("toggle-native-button").addEventListener("click", toggleNativeSidebar);
+    if (__nativeSidebarBridge) {
+      __nativeSidebarBridge.onChange = updateToggleNativeButton;
+      updateToggleNativeButton(__nativeSidebarBridge.isVisible());
+    }
+  }
   byId("new-folder-button").addEventListener("click", showFolderForm);
   byId("folder-form").addEventListener("submit", createFolderFromForm);
 
@@ -277,6 +286,34 @@ function renderDefaultProviderSection() {
   return section;
 }
 
+function createToggleRow(labelText, isChecked, onChange, isDisabled = false, title = "") {
+  const label = document.createElement("label");
+  label.className = "toggle-label";
+  if (title) label.title = title;
+
+  const textNode = document.createElement("span");
+  textNode.className = "toggle-text";
+  textNode.textContent = labelText;
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "toggle-input";
+  checkbox.checked = isChecked;
+  checkbox.disabled = isDisabled;
+  checkbox.onchange = onChange;
+
+  const slider = document.createElement("span");
+  slider.className = "toggle-slider";
+
+  const toggleWrap = document.createElement("div");
+  toggleWrap.className = "toggle-switch";
+  if (isDisabled) toggleWrap.classList.add("disabled");
+  toggleWrap.append(checkbox, slider);
+
+  label.append(textNode, toggleWrap);
+  return label;
+}
+
 function renderEnabledProvidersSection() {
   const section = document.createElement("section");
   section.className = "settings-section";
@@ -291,20 +328,11 @@ function renderEnabledProvidersSection() {
     const provider = getProvider(name);
     if (!provider) return;
 
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = enabled.has(name);
-
     const isLastChecked = enabled.size === 1 && enabled.has(name);
-    if (isLastChecked) {
-      checkbox.disabled = true;
-      label.title = "至少保留一个 provider";
-    }
-
-    checkbox.onchange = () => {
+    
+    const onChange = (event) => {
       const next = new Set(settings.enabledProviders);
-      if (checkbox.checked) {
+      if (event.target.checked) {
         next.add(name);
       } else {
         next.delete(name);
@@ -312,8 +340,15 @@ function renderEnabledProvidersSection() {
       saveSettings({ ...settings, enabledProviders: providerNames().filter((p) => next.has(p)) });
     };
 
-    label.append(checkbox, document.createTextNode(provider.label));
-    section.appendChild(label);
+    const row = createToggleRow(
+      provider.label,
+      enabled.has(name),
+      onChange,
+      isLastChecked,
+      isLastChecked ? "至少保留一个 provider" : ""
+    );
+
+    section.appendChild(row);
   });
 
   return section;
@@ -338,13 +373,9 @@ function renderQuickActionsSection() {
   }
 
   actions.forEach(({ provider, action }) => {
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = enabled.has(action.id);
-    checkbox.onchange = () => {
+    const onChange = (event) => {
       const next = new Set(settings.enabledQuickActions);
-      if (checkbox.checked) {
+      if (event.target.checked) {
         next.add(action.id);
       } else {
         next.delete(action.id);
@@ -352,8 +383,13 @@ function renderQuickActionsSection() {
       saveSettings({ ...settings, enabledQuickActions: [...next] });
     };
 
-    label.append(checkbox, document.createTextNode(`${provider.label} · ${action.label}`));
-    section.appendChild(label);
+    const row = createToggleRow(
+      `${provider.label} · ${action.label}`,
+      enabled.has(action.id),
+      onChange
+    );
+
+    section.appendChild(row);
   });
 
   return section;
@@ -686,6 +722,27 @@ function toggleCollapse() {
   const next = !readCollapseState();
   __collapseStorage.set(next ? "1" : "0");
   applyCollapseState(next);
+}
+
+function toggleNativeSidebar() {
+  if (!__nativeSidebarBridge) return;
+  const isNowVisible = __nativeSidebarBridge.toggle();
+  updateToggleNativeButton(isNowVisible);
+}
+
+function updateToggleNativeButton(isVisible) {
+  const btn = byId("toggle-native-button");
+  const icon = byId("toggle-native-icon");
+  const text = byId("toggle-native-text");
+  if (!btn || !icon || !text) return;
+  
+  if (isVisible) {
+    icon.textContent = "🙈";
+    text.textContent = "隐藏原版侧栏";
+  } else {
+    icon.textContent = "👀";
+    text.textContent = "显示原版侧栏";
+  }
 }
 
 async function loadState() {

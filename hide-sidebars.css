@@ -5,36 +5,31 @@
  */
 
 /* ChatGPT */
-#stage-slideover-sidebar,
-nav[aria-label="Chat history"],
-nav[aria-label="聊天记录"],
-aside:has(a[href^="/c/"]),
+body:not(.llmnav-show-native) #stage-slideover-sidebar,
+body:not(.llmnav-show-native) nav[aria-label="Chat history"],
+body:not(.llmnav-show-native) nav[aria-label="聊天记录"],
+body:not(.llmnav-show-native) aside:has(a[href^="/c/"]),
 
 /* Claude */
-nav[aria-label="Sidebar"],
+body:not(.llmnav-show-native) nav[aria-label="Sidebar"],
 
 /* DeepSeek */
-#llmnav-do-not-match-deepseek,
+body:not(.llmnav-show-native) div#root > div > div > div:first-child:has(a[href^="/a/chat/s/"]),
 
 /* Gemini */
-bard-sidenav,
+body:not(.llmnav-show-native) bard-sidenav,
 
 /* Grok */
-div[data-variant="sidebar"],
+body:not(.llmnav-show-native) div[data-variant="sidebar"],
 
 /* Kimi */
-aside.sidebar,
+body:not(.llmnav-show-native) aside.sidebar,
 
 /* Manus */
-nav:has(div[data-session-item="true"]),
+body:not(.llmnav-show-native) nav:has(div[data-session-item="true"]),
 
 /* Perplexity */
-nav[aria-label="主导航"],
-nav[aria-label="Main navigation"] {
-  display: none !important;
-}
-
-/* DeepSeek */
-div#root > div > div > div:first-child:has(a[href^="/a/chat/s/"]) {
+body:not(.llmnav-show-native) nav[aria-label="主导航"],
+body:not(.llmnav-show-native) nav[aria-label="Main navigation"] {
   display: none !important;
 }
