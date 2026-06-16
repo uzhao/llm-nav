@@ -414,10 +414,31 @@ async function render() {
   const folders = LLMNavModel.filterFoldersAcrossProviders(state, providerStatuses);
 
   renderNoticeForPageState();
+  renderAccountIndicator();
 
   LLMNavModel.getFolderOrder(folders).forEach((folderName) => {
     container.appendChild(renderFolder(folderName, folders[folderName]));
   });
+}
+
+function renderAccountIndicator() {
+  const el = byId("account-indicator");
+  if (!el) return;
+
+  if (!pageState || !pageState.supported || !pageState.provider) {
+    el.textContent = "";
+    el.classList.remove("unknown");
+    return;
+  }
+
+  const account = (pageState.account || "").trim();
+  if (account) {
+    el.textContent = `账号:${account}`;
+    el.classList.remove("unknown");
+  } else {
+    el.textContent = "账号:未识别";
+    el.classList.add("unknown");
+  }
 }
 
 function renderNoticeForPageState() {
@@ -492,8 +513,20 @@ function renderFolder(folderName, records) {
   if (!collapsedFolders.has(folderName)) {
     const list = document.createElement("div");
     list.className = "conversation-list";
-    records.forEach((record) => {
-      list.appendChild(renderConversation(record));
+    list.addEventListener("dragover", (event) => {
+      if (!event.target.closest(".conversation-row")) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }
+    });
+    list.addEventListener("drop", async (event) => {
+      if (!event.target.closest(".conversation-row")) {
+        event.preventDefault();
+        await handleDrop(event, folderName);
+      }
+    });
+    records.forEach((record, index) => {
+      list.appendChild(renderConversation(record, folderName, records, index));
     });
     section.appendChild(list);
   }
@@ -585,7 +618,7 @@ function beginRename(folderName, labelSpan) {
   input.select();
 }
 
-function renderConversation(record) {
+function renderConversation(record, folderName, records, index) {
   const row = document.createElement("button");
   row.type = "button";
   row.className = "conversation-row";
@@ -599,6 +632,41 @@ function renderConversation(record) {
       url: record.url,
       account: record.account
     }));
+  });
+  row.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    const rect = row.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (event.clientY < mid) {
+      row.classList.add("drop-above");
+      row.classList.remove("drop-below");
+    } else {
+      row.classList.add("drop-below");
+      row.classList.remove("drop-above");
+    }
+  });
+  row.addEventListener("dragleave", () => {
+    row.classList.remove("drop-above", "drop-below");
+  });
+  row.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    row.classList.remove("drop-above", "drop-below");
+
+    const raw = event.dataTransfer.getData("application/json");
+    if (!raw) return;
+
+    const data = JSON.parse(raw);
+    const rect = row.getBoundingClientRect();
+    const dropAbove = event.clientY < rect.top + rect.height / 2;
+    const insertBefore = dropAbove ? records[index] : records[index + 1] || null;
+
+    const state = await loadState();
+    const next = LLMNavModel.moveConversation(state, data.provider, data.url, folderName, data.account, insertBefore);
+    await saveState(next);
+    await render();
   });
 
   const provider = getProvider(record.provider);

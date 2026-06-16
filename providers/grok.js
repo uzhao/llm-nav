@@ -12,6 +12,7 @@
     scraping: {
       accountSelectors: ['button:has(img[alt="pfp"])'],
       accountDisplaySubSelector: null,
+      accountRawText: true,
       historyRootSelector: 'div[data-variant="sidebar"]',
       historyLinkSelector: 'a[href^="/c/"]',
       historyPathPrefix: "/c/",

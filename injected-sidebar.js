@@ -43,6 +43,13 @@
   function scrapeAccount() {
     for (const selector of scraping.accountSelectors) {
       for (const element of document.querySelectorAll(selector)) {
+        // 账号信息直接写在元素文本里(如 deepseek/grok), 不走 email 提取
+        if (scraping.accountRawText) {
+          const rawName = normalizeAccountName(element.textContent);
+          if (rawName) return rawName;
+          continue;
+        }
+
         const rawText = `${element.getAttribute("aria-label") || ""} ${element.textContent || ""}`;
         const email = extractEmail(rawText);
         if (email) return email;
@@ -131,6 +138,10 @@
         account: account || "",
         hasHistory: records.length > 0
       });
+    }
+
+    if (records.length === 0 && !document.querySelector(scraping.historyRootSelector)) {
+      return;
     }
 
     try {

@@ -9,6 +9,7 @@
     scraping: {
       accountSelectors: ['div:has(> div > img[src*="/user-avatar/"])'],
       accountDisplaySubSelector: null,
+      accountRawText: true,
       historyRootSelector: 'div:has(> a[href^="/a/chat/s/"])',
       historyLinkSelector: 'a[href^="/a/chat/s/"]',
       historyPathPrefix: "/a/chat/s/",

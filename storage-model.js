@@ -190,7 +190,7 @@
     return next;
   }
 
-  function moveConversation(state, provider, url, targetFolder, account) {
+  function moveConversation(state, provider, url, targetFolder, account, insertBefore) {
     const next = cloneState(state);
     const normalizedUrl = normalizeUrl(url);
     const hasAccount = arguments.length >= 5;
@@ -221,8 +221,30 @@
     }
 
     const match = matches[0];
+
+    if (insertBefore && match.folderName === targetFolder &&
+        insertBefore.provider === provider &&
+        normalizeUrl(insertBefore.url) === normalizedUrl &&
+        normalizeAccount(insertBefore.account) === normalizedAccount) {
+      return next;
+    }
+
     const removed = next.folders[match.folderName].splice(match.index, 1);
-    next.folders[targetFolder].push(removed[0]);
+
+    if (insertBefore) {
+      const beforeIndex = next.folders[targetFolder].findIndex((r) =>
+        r.provider === insertBefore.provider &&
+        normalizeUrl(r.url) === normalizeUrl(insertBefore.url) &&
+        normalizeAccount(r.account) === normalizeAccount(insertBefore.account)
+      );
+      if (beforeIndex !== -1) {
+        next.folders[targetFolder].splice(beforeIndex, 0, removed[0]);
+      } else {
+        next.folders[targetFolder].push(removed[0]);
+      }
+    } else {
+      next.folders[targetFolder].push(removed[0]);
+    }
 
     return next;
   }
