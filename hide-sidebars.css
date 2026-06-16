@@ -1,0 +1,40 @@
+/* 
+ * Native stylesheet to hide original provider sidebars.
+ * We inject this natively via manifest.json to avoid React hydration errors 
+ * caused by manually injecting <style> tags at document_start.
+ */
+
+/* ChatGPT */
+#stage-slideover-sidebar,
+nav[aria-label="Chat history"],
+nav[aria-label="聊天记录"],
+aside:has(a[href^="/c/"]),
+
+/* Claude */
+nav[aria-label="Sidebar"],
+
+/* DeepSeek */
+#llmnav-do-not-match-deepseek,
+
+/* Gemini */
+bard-sidenav,
+
+/* Grok */
+div[data-variant="sidebar"],
+
+/* Kimi */
+aside.sidebar,
+
+/* Manus */
+nav:has(div[data-session-item="true"]),
+
+/* Perplexity */
+nav[aria-label="主导航"],
+nav[aria-label="Main navigation"] {
+  display: none !important;
+}
+
+/* DeepSeek */
+div#root > div > div > div:first-child:has(a[href^="/a/chat/s/"]) {
+  display: none !important;
+}

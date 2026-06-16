@@ -33,6 +33,7 @@
         "https://manus.im/*",
         "https://app.manus.im/*"
       ],
+      "css": ["hide-sidebars.css"],
       "js": [
         "providers/chatgpt.js",
         "providers/gemini.js",

@@ -16,16 +16,6 @@
     return;
   }
 
-  if (provider.scraping && provider.scraping.hideSidebarSelector) {
-    const style = document.createElement("style");
-    style.textContent = `
-      ${provider.scraping.hideSidebarSelector} {
-        display: none !important;
-      }
-    `;
-    (document.head || document.documentElement).appendChild(style);
-  }
-
   const HOST_ID = "llmnav-host";
   const HANDLE_ID = "llmnav-handle";
   const COLLAPSE_KEY = "llmnav:sidebarCollapsed";
@@ -167,9 +157,6 @@
         width: 360px !important;
         height: 100vh !important;
         z-index: 2147483646 !important;
-      }
-      ${provider.scraping.hideSidebarSelector} {
-        display: none !important;
       }
     `);
     return sheet;

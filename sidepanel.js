@@ -473,7 +473,7 @@ function renderFolder(folderName, records) {
     const list = document.createElement("div");
     list.className = "conversation-list";
     records.forEach((record) => {
-      list.appendChild(renderConversation(record));
+      list.appendChild(renderConversation(record, folderName));
     });
     section.appendChild(list);
   }
@@ -565,7 +565,7 @@ function beginRename(folderName, labelSpan) {
   input.select();
 }
 
-function renderConversation(record) {
+function renderConversation(record, folderName) {
   const row = document.createElement("button");
   row.type = "button";
   row.className = "conversation-row";
@@ -595,6 +595,28 @@ function renderConversation(record) {
   title.textContent = record.title;
 
   row.append(badge, title);
+
+  if (folderName !== "archived") {
+    const actions = document.createElement("span");
+    actions.className = "conversation-actions";
+
+    const archiveBtn = document.createElement("button");
+    archiveBtn.type = "button";
+    archiveBtn.className = "conversation-action";
+    archiveBtn.title = "归档";
+    archiveBtn.textContent = "↓";
+    archiveBtn.onclick = async (event) => {
+      event.stopPropagation();
+      const state = await loadState();
+      const next = LLMNavModel.moveConversation(state, record.provider, record.url, "archived");
+      await saveState(next);
+      await render();
+    };
+
+    actions.appendChild(archiveBtn);
+    row.appendChild(actions);
+  }
+
   return row;
 }
 

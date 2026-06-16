@@ -26,7 +26,7 @@ button {
 
 .panel {
   box-sizing: border-box;
-  min-height: 100vh;
+  height: 100vh;
   padding: 8px 8px 16px 8px;
   display: flex;
   flex-direction: column;
@@ -103,6 +103,9 @@ button {
   flex-direction: column;
   margin: 0;
   padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: none;
 }
 
@@ -422,6 +425,36 @@ button {
 }
 
 .folder-action:hover {
+  background: #e0e0e0;
+}
+
+.conversation-actions {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.conversation-row:hover .conversation-actions {
+  display: inline-flex;
+}
+
+.conversation-action {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: rgb(95, 99, 104);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conversation-action:hover {
   background: #e0e0e0;
 }
 

@@ -11,7 +11,7 @@
       historyLinkSelector: 'a[href^="/a/chat/s/"]',
       historyPathPrefix: "/a/chat/s/",
       titleSubSelector: null,
-      hideSidebarSelector: 'body > div:has(a[href^="/a/chat/s/"])',
+      hideSidebarSelector: 'div#root > div > div > div:first-child:has(a[href^="/a/chat/s/"])',
       hideStyleId: "llmnav-hide-deepseek-sidebar"
     }
   };
