@@ -7,8 +7,6 @@
     label: "DeepSeek",
     badge: { letter: "D", color: "#4d6bfe" },
     scraping: {
-      accountSelectors: ['div:has(> div > img[src*="/user-avatar/"])'],
-      accountDisplaySubSelector: null,
       historyRootSelector: 'div:has(> a[href^="/a/chat/s/"])',
       historyLinkSelector: 'a[href^="/a/chat/s/"]',
       historyPathPrefix: "/a/chat/s/",

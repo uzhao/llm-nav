@@ -12,8 +12,6 @@ function loadProvider(name) {
 }
 
 const REQUIRED_SCRAPING_KEYS = [
-  "accountSelectors",
-  "accountDisplaySubSelector",
   "historyRootSelector",
   "historyLinkSelector",
   "historyPathPrefix",

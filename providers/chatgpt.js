@@ -12,14 +12,6 @@
       { id: "chatgpt.deep-research", label: "深度研究", url: "https://chatgpt.com/deep-research" }
     ],
     scraping: {
-      accountSelectors: [
-        '[data-testid="accounts-profile-button"]',
-        '[data-testid="profile-button"]',
-        'button[aria-label*="account" i]',
-        'button[aria-label*="profile" i]',
-        '[aria-label*="@"]'
-      ],
-      accountDisplaySubSelector: ".truncate",
       historyRootSelector: "#history",
       historyLinkSelector: 'a[href^="/c/"], a[href^="https://chatgpt.com/c/"], a[href^="https://chat.openai.com/c/"]',
       historyPathPrefix: "/c/",

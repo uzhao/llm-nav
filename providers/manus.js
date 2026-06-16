@@ -7,8 +7,6 @@
     label: "Manus",
     badge: { letter: "M", color: "#6b46c1" },
     scraping: {
-      accountSelectors: ['div:has(> img[alt*="avatar" i])', 'div[class*="user" i]'],
-      accountDisplaySubSelector: null,
       historyRootSelector: 'nav:has(div[data-session-item="true"])',
       historyLinkSelector: 'div[data-session-item="true"]',
       historyPathPrefix: "/",

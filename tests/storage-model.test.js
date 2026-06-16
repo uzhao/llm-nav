@@ -8,7 +8,6 @@ test("initial state contains system folders", () => {
   assert.deepEqual(Object.keys(state.folders), ["unclassified", "archived"]);
   assert.deepEqual(state.folders.unclassified, []);
   assert.deepEqual(state.folders.archived, []);
-  assert.deepEqual(state.activeAccounts, {});
 });
 
 test("createFolder trims names and rejects empty or system folders", () => {
@@ -23,22 +22,19 @@ test("createFolder trims names and rejects empty or system folders", () => {
 });
 
 test("upsertVisibleConversations stores new ChatGPT records in unclassified", () => {
-  const next = model.upsertVisibleConversations(model.createInitialState(), "chatgpt", "user@example.com", [
+  const next = model.upsertVisibleConversations(model.createInitialState(), "chatgpt", [
     { title: "Python 问题", url: "https://chatgpt.com/c/one" },
     { title: "JS 问题", url: "https://chatgpt.com/c/two" }
   ]);
 
-  assert.equal(next.activeAccounts.chatgpt, "user@example.com");
   assert.deepEqual(next.folders.unclassified, [
     {
       provider: "chatgpt",
-      account: "user@example.com",
       title: "Python 问题",
       url: "https://chatgpt.com/c/one"
     },
     {
       provider: "chatgpt",
-      account: "user@example.com",
       title: "JS 问题",
       url: "https://chatgpt.com/c/two"
     }
@@ -49,12 +45,11 @@ test("upsertVisibleConversations updates title without changing folder", () => {
   const state = model.createFolder(model.createInitialState(), "coding");
   state.folders.coding.push({
     provider: "chatgpt",
-    account: "user@example.com",
     title: "旧标题",
     url: "https://chatgpt.com/c/one"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "user@example.com", [
+  const next = model.upsertVisibleConversations(state, "chatgpt", [
     { title: "新标题", url: "https://chatgpt.com/c/one" }
   ]);
 
@@ -63,135 +58,24 @@ test("upsertVisibleConversations updates title without changing folder", () => {
   assert.equal(next.folders.unclassified.length, 0);
 });
 
-test("upsertVisibleConversations upgrades unknown account without duplicate records", () => {
-  const state = model.createInitialState();
-  state.folders.unclassified.push({
-    provider: "chatgpt",
-    account: "unknown",
-    title: "临时标题",
-    url: "https://chatgpt.com/c/one"
-  });
-
-  const next = model.upsertVisibleConversations(state, "chatgpt", "user@example.com", [
-    { title: "确认标题", url: "https://chatgpt.com/c/one" }
-  ]);
-
-  assert.equal(next.folders.unclassified.length, 1);
-  assert.equal(next.folders.unclassified[0].account, "user@example.com");
-  assert.equal(next.folders.unclassified[0].title, "确认标题");
-});
-
-test("upsertVisibleConversations keeps known accounts separate for shared URLs", () => {
-  const withFirstAccount = model.upsertVisibleConversations(model.createInitialState(), "chatgpt", "a@example.com", [
-    { title: "账号 A 标题", url: "https://chatgpt.com/c/shared" }
-  ]);
-
-  const next = model.upsertVisibleConversations(withFirstAccount, "chatgpt", "b@example.com", [
-    { title: "账号 B 标题", url: "https://chatgpt.com/c/shared" }
-  ]);
-
-  assert.equal(next.folders.unclassified.length, 2);
-  assert.deepEqual(
-    next.folders.unclassified.map((record) => ({ account: record.account, title: record.title })),
-    [
-      { account: "b@example.com", title: "账号 B 标题" },
-      { account: "a@example.com", title: "账号 A 标题" }
-    ]
-  );
-});
-
-test("filterFoldersForProvider filters by active account when account is known", () => {
-  const state = model.createInitialState();
-  state.activeAccounts.chatgpt = "a@example.com";
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "A", url: "https://chatgpt.com/c/a" },
-    { provider: "chatgpt", account: "b@example.com", title: "B", url: "https://chatgpt.com/c/b" },
-    { provider: "gemini", account: "a@example.com", title: "G", url: "https://gemini.google.com/app/g" }
-  );
-
-  const visible = model.filterFoldersForProvider(state, "chatgpt", { hasAccount: true, account: "a@example.com" });
-
-  assert.deepEqual(visible.unclassified.map((record) => record.title), ["A"]);
-});
-
-test("filterFoldersForProvider shows all provider records when account is unknown", () => {
-  const state = model.createInitialState();
-  state.activeAccounts.chatgpt = "a@example.com";
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "A", url: "https://chatgpt.com/c/a" },
-    { provider: "chatgpt", account: "b@example.com", title: "B", url: "https://chatgpt.com/c/b" },
-    { provider: "gemini", account: "a@example.com", title: "G", url: "https://gemini.google.com/app/g" }
-  );
-
-  const visible = model.filterFoldersForProvider(state, "chatgpt", { hasAccount: false, account: "" });
-
-  assert.deepEqual(visible.unclassified.map((record) => record.title), ["A", "B"]);
-});
-
-test("moveConversation moves a record from its current folder to target folder", () => {
-  const state = model.createFolder(model.createInitialState(), "coding");
-  state.folders.unclassified.push({
-    provider: "chatgpt",
-    account: "user@example.com",
-    title: "Python 问题",
-    url: "https://chatgpt.com/c/one"
-  });
-
-  const next = model.moveConversation(state, "chatgpt", "https://chatgpt.com/c/one", "coding");
-
-  assert.equal(next.folders.unclassified.length, 0);
-  assert.deepEqual(next.folders.coding.map((record) => record.url), ["https://chatgpt.com/c/one"]);
-});
-
-test("moveConversation moves the matching account for shared URLs", () => {
-  const state = model.createFolder(model.createInitialState(), "coding");
-  const sharedUrl = "https://chatgpt.com/c/shared";
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "账号 A", url: sharedUrl },
-    { provider: "chatgpt", account: "b@example.com", title: "账号 B", url: sharedUrl }
-  );
-
-  const next = model.moveConversation(state, "chatgpt", sharedUrl, "coding", "b@example.com");
-
-  assert.deepEqual(next.folders.coding.map((record) => record.account), ["b@example.com"]);
-  assert.deepEqual(next.folders.unclassified.map((record) => record.account), ["a@example.com"]);
-});
-
-test("moveConversation does not move shared URLs without account", () => {
-  const state = model.createFolder(model.createInitialState(), "coding");
-  const sharedUrl = "https://chatgpt.com/c/shared";
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "账号 A", url: sharedUrl },
-    { provider: "chatgpt", account: "b@example.com", title: "账号 B", url: sharedUrl }
-  );
-
-  const next = model.moveConversation(state, "chatgpt", sharedUrl, "coding");
-
-  assert.equal(next.folders.coding.length, 0);
-  assert.deepEqual(next.folders.unclassified.map((record) => record.account), ["a@example.com", "b@example.com"]);
-});
-
-test("upsertVisibleConversations removes records missing from the current account sync", () => {
+test("upsertVisibleConversations removes records missing from the current sync", () => {
   const state = model.createFolder(model.createInitialState(), "coding");
   state.folders.unclassified.push(
-    { provider: "chatgpt", account: "Jianyang Zhao", title: "保留", url: "https://chatgpt.com/c/keep" },
-    { provider: "chatgpt", account: "Jianyang Zhao", title: "删除", url: "https://chatgpt.com/c/remove" },
-    { provider: "chatgpt", account: "Other User", title: "其他账号", url: "https://chatgpt.com/c/other" }
+    { provider: "chatgpt", title: "保留", url: "https://chatgpt.com/c/keep" },
+    { provider: "chatgpt", title: "删除", url: "https://chatgpt.com/c/remove" }
   );
   state.folders.coding.push({
     provider: "chatgpt",
-    account: "Jianyang Zhao",
     title: "目录内保留",
     url: "https://chatgpt.com/c/folder-keep"
   });
   state.folders.archived.push({
     provider: "gemini",
-    account: "Jianyang Zhao",
     title: "其他 provider",
     url: "https://gemini.google.com/app/one"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "Jianyang Zhao", [
+  const next = model.upsertVisibleConversations(state, "chatgpt", [
     { title: "保留新标题", url: "https://chatgpt.com/c/keep" },
     { title: "目录内保留新标题", url: "https://chatgpt.com/c/folder-keep" },
     { title: "新增", url: "https://chatgpt.com/c/new" }
@@ -199,8 +83,7 @@ test("upsertVisibleConversations removes records missing from the current accoun
 
   assert.deepEqual(next.folders.unclassified.map((record) => record.url), [
     "https://chatgpt.com/c/new",
-    "https://chatgpt.com/c/keep",
-    "https://chatgpt.com/c/other"
+    "https://chatgpt.com/c/keep"
   ]);
   assert.equal(next.folders.unclassified[1].title, "保留新标题");
   assert.deepEqual(next.folders.coding.map((record) => record.url), ["https://chatgpt.com/c/folder-keep"]);
@@ -212,98 +95,95 @@ test("upsertVisibleConversations removes existing records when sync has no recor
   const state = model.createInitialState();
   state.folders.unclassified.push({
     provider: "chatgpt",
-    account: "Jianyang Zhao",
     title: "已有记录",
     url: "https://chatgpt.com/c/existing"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "Jianyang Zhao", []);
+  const next = model.upsertVisibleConversations(state, "chatgpt", []);
 
   assert.deepEqual(next.folders.unclassified, []);
 });
 
-test("filterFoldersAcrossProviders filters each provider by its active account", () => {
+test("upsertVisibleConversations preserves records from other providers", () => {
+  const state = model.createInitialState();
+  state.folders.unclassified.push(
+    { provider: "chatgpt", title: "ChatGPT", url: "https://chatgpt.com/c/one" },
+    { provider: "gemini", title: "Gemini", url: "https://gemini.google.com/app/one" }
+  );
+
+  const next = model.upsertVisibleConversations(state, "chatgpt", []);
+
+  assert.deepEqual(next.folders.unclassified.map((r) => r.provider), ["gemini"]);
+});
+
+test("filterFoldersForProviders filters records by provider name set", () => {
+  const state = model.createInitialState();
+  state.folders.unclassified.push(
+    { provider: "chatgpt", title: "C", url: "https://chatgpt.com/c/a" },
+    { provider: "gemini", title: "G", url: "https://gemini.google.com/app/a" },
+    { provider: "claude", title: "CL", url: "https://claude.ai/chat/a" }
+  );
+
+  const filtered = model.filterFoldersForProviders(state, ["chatgpt", "gemini"]);
+
+  assert.deepEqual(filtered.unclassified.map((r) => r.title), ["C", "G"]);
+});
+
+test("filterFoldersForProviders preserves original insertion order within each folder", () => {
+  const state = model.createInitialState();
+  state.folders.unclassified.push(
+    { provider: "chatgpt", title: "C1", url: "https://chatgpt.com/c/1" },
+    { provider: "gemini",  title: "G1", url: "https://gemini.google.com/app/1" },
+    { provider: "chatgpt", title: "C2", url: "https://chatgpt.com/c/2" },
+    { provider: "gemini",  title: "G2", url: "https://gemini.google.com/app/2" }
+  );
+
+  const filtered = model.filterFoldersForProviders(state, ["chatgpt", "gemini"]);
+
+  assert.deepEqual(filtered.unclassified.map((record) => record.title), ["C1", "G1", "C2", "G2"]);
+});
+
+test("filterFoldersForProviders works across custom folders", () => {
   const state = model.createFolder(model.createInitialState(), "work");
   state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "C-A", url: "https://chatgpt.com/c/a" },
-    { provider: "chatgpt", account: "b@example.com", title: "C-B", url: "https://chatgpt.com/c/b" },
-    { provider: "gemini",  account: "g1@example.com", title: "G-1", url: "https://gemini.google.com/app/1" },
-    { provider: "gemini",  account: "g2@example.com", title: "G-2", url: "https://gemini.google.com/app/2" }
+    { provider: "chatgpt", title: "C-A", url: "https://chatgpt.com/c/a" },
+    { provider: "gemini",  title: "G-1", url: "https://gemini.google.com/app/1" }
   );
   state.folders.work.push(
-    { provider: "chatgpt", account: "a@example.com", title: "C-WORK", url: "https://chatgpt.com/c/work" },
-    { provider: "gemini",  account: "g1@example.com", title: "G-WORK", url: "https://gemini.google.com/app/work" }
+    { provider: "chatgpt", title: "C-WORK", url: "https://chatgpt.com/c/work" },
+    { provider: "gemini",  title: "G-WORK", url: "https://gemini.google.com/app/work" }
   );
-  state.activeAccounts.chatgpt = "a@example.com";
-  state.activeAccounts.gemini = "g1@example.com";
 
-  const filtered = model.filterFoldersAcrossProviders(state, {
-    chatgpt: { hasAccount: true, account: "a@example.com" },
-    gemini:  { hasAccount: true, account: "g1@example.com" }
-  });
+  const filtered = model.filterFoldersForProviders(state, ["chatgpt", "gemini"]);
 
   assert.deepEqual(filtered.unclassified.map((record) => record.title), ["C-A", "G-1"]);
   assert.deepEqual(filtered.work.map((record) => record.title), ["C-WORK", "G-WORK"]);
   assert.deepEqual(filtered.archived, []);
 });
 
-test("filterFoldersAcrossProviders falls back to storage activeAccounts when provider status missing", () => {
-  const state = model.createInitialState();
-  state.folders.unclassified.push(
-    { provider: "gemini", account: "g1@example.com", title: "G-1", url: "https://gemini.google.com/app/1" },
-    { provider: "gemini", account: "g2@example.com", title: "G-2", url: "https://gemini.google.com/app/2" }
-  );
-  state.activeAccounts.gemini = "g1@example.com";
-
-  const filtered = model.filterFoldersAcrossProviders(state, {});
-
-  assert.deepEqual(filtered.unclassified.map((record) => record.title), ["G-1"]);
-});
-
-test("filterFoldersAcrossProviders shows all records of a provider when its account is unknown", () => {
-  const state = model.createInitialState();
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "C-A", url: "https://chatgpt.com/c/a" },
-    { provider: "chatgpt", account: "b@example.com", title: "C-B", url: "https://chatgpt.com/c/b" }
-  );
-  state.activeAccounts.chatgpt = "a@example.com";
-
-  const filtered = model.filterFoldersAcrossProviders(state, {
-    chatgpt: { hasAccount: false, account: "" }
+test("moveConversation moves a record from its current folder to target folder", () => {
+  const state = model.createFolder(model.createInitialState(), "coding");
+  state.folders.unclassified.push({
+    provider: "chatgpt",
+    title: "Python 问题",
+    url: "https://chatgpt.com/c/one"
   });
 
-  assert.deepEqual(filtered.unclassified.map((record) => record.title), ["C-A", "C-B"]);
-});
+  const next = model.moveConversation(state, "chatgpt", "https://chatgpt.com/c/one", "coding");
 
-test("filterFoldersAcrossProviders preserves original insertion order within each folder", () => {
-  const state = model.createInitialState();
-  state.folders.unclassified.push(
-    { provider: "chatgpt", account: "a@example.com", title: "C1", url: "https://chatgpt.com/c/1" },
-    { provider: "gemini",  account: "g@example.com", title: "G1", url: "https://gemini.google.com/app/1" },
-    { provider: "chatgpt", account: "a@example.com", title: "C2", url: "https://chatgpt.com/c/2" },
-    { provider: "gemini",  account: "g@example.com", title: "G2", url: "https://gemini.google.com/app/2" }
-  );
-  state.activeAccounts.chatgpt = "a@example.com";
-  state.activeAccounts.gemini = "g@example.com";
-
-  const filtered = model.filterFoldersAcrossProviders(state, {
-    chatgpt: { hasAccount: true, account: "a@example.com" },
-    gemini:  { hasAccount: true, account: "g@example.com" }
-  });
-
-  assert.deepEqual(filtered.unclassified.map((record) => record.title), ["C1", "G1", "C2", "G2"]);
+  assert.equal(next.folders.unclassified.length, 0);
+  assert.deepEqual(next.folders.coding.map((record) => record.url), ["https://chatgpt.com/c/one"]);
 });
 
 test("upsertVisibleConversations prepends a brand new url to unclassified head", () => {
   const state = model.createInitialState();
   state.folders.unclassified.push({
     provider: "chatgpt",
-    account: "user@example.com",
     title: "老对话",
     url: "https://chatgpt.com/c/old"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "user@example.com", [
+  const next = model.upsertVisibleConversations(state, "chatgpt", [
     { title: "新对话", url: "https://chatgpt.com/c/new" },
     { title: "老对话", url: "https://chatgpt.com/c/old" }
   ]);
@@ -318,12 +198,11 @@ test("upsertVisibleConversations preserves DOM order across multiple brand new u
   const state = model.createInitialState();
   state.folders.unclassified.push({
     provider: "chatgpt",
-    account: "user@example.com",
     title: "原有",
     url: "https://chatgpt.com/c/old"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "user@example.com", [
+  const next = model.upsertVisibleConversations(state, "chatgpt", [
     { title: "最新", url: "https://chatgpt.com/c/a" },
     { title: "次新", url: "https://chatgpt.com/c/b" },
     { title: "再次", url: "https://chatgpt.com/c/c" },
@@ -345,12 +224,11 @@ test("upsertVisibleConversations does not move a brand new url that lives in a c
   let state = model.createFolder(model.createInitialState(), "coding");
   state.folders.coding.push({
     provider: "chatgpt",
-    account: "user@example.com",
     title: "保留在 coding",
     url: "https://chatgpt.com/c/keep"
   });
 
-  const next = model.upsertVisibleConversations(state, "chatgpt", "user@example.com", [
+  const next = model.upsertVisibleConversations(state, "chatgpt", [
     { title: "保留在 coding", url: "https://chatgpt.com/c/keep" },
     { title: "新进来", url: "https://chatgpt.com/c/new" }
   ]);
@@ -371,13 +249,12 @@ test("deleteFolder appends conversations to unclassified tail and removes the fo
   let state = model.createFolder(model.createInitialState(), "coding");
   state.folders.unclassified.push({
     provider: "chatgpt",
-    account: "u@example.com",
     title: "保留",
     url: "https://chatgpt.com/c/keep"
   });
   state.folders.coding.push(
-    { provider: "chatgpt", account: "u@example.com", title: "移走 1", url: "https://chatgpt.com/c/m1" },
-    { provider: "chatgpt", account: "u@example.com", title: "移走 2", url: "https://chatgpt.com/c/m2" }
+    { provider: "chatgpt", title: "移走 1", url: "https://chatgpt.com/c/m1" },
+    { provider: "chatgpt", title: "移走 2", url: "https://chatgpt.com/c/m2" }
   );
 
   const next = model.deleteFolder(state, "coding");
@@ -413,7 +290,6 @@ test("renameFolder renames a custom folder and keeps its records", () => {
   const state = model.createFolder(model.createInitialState(), "coding");
   state.folders.coding.push({
     provider: "chatgpt",
-    account: "u@example.com",
     title: "保留",
     url: "https://chatgpt.com/c/x"
   });
@@ -460,7 +336,6 @@ test("renameFolder refuses newName when it already exists", () => {
   state = model.createFolder(state, "research");
   state.folders.coding.push({
     provider: "chatgpt",
-    account: "u@example.com",
     title: "X",
     url: "https://chatgpt.com/c/x"
   });

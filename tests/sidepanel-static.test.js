@@ -52,15 +52,14 @@ test("sidepanel script 通过注册表渲染按钮、徽标与文案", () => {
   assert.match(script, /chrome\.storage\.onChanged\.addListener/);
   assert.match(script, /event\.dataTransfer\.setData/);
   assert.match(script, /provider: record\.provider/);
-  assert.match(script, /account: record\.account/);
-  assert.match(script, /moveConversation\(state, data\.provider, data\.url, targetFolder, data\.account\)/);
+  assert.match(script, /moveConversation\(state, data\.provider, data\.url, targetFolder\)/);
   assert.doesNotMatch(script, /renderNewChatButtons/);
   assert.match(script, /window\.LLMNavProviders/);
   assert.match(script, /provider\.newChatUrl/);
   assert.match(script, /provider\.badge\.color/);
   assert.match(script, /provider\.badge\.letter/);
   assert.match(script, /provider\.label/);
-  assert.match(script, /filterFoldersAcrossProviders/);
+  assert.match(script, /filterFoldersForProviders/);
   assert.doesNotMatch(script, /const PROVIDER_NEW_CHAT_URLS/);
   assert.doesNotMatch(script, /const PROVIDER_BADGES/);
   assert.doesNotMatch(script, /const PROVIDER_LABELS/);
@@ -109,11 +108,10 @@ test("sidepanel 忽略已过期的重叠渲染", async () => {
   const storedState = {
     folders: {
       unclassified: [
-        { provider: "chatgpt", account: "user@example.com", title: "聊天记录", url: "https://chatgpt.com/c/one" }
+        { provider: "chatgpt", title: "聊天记录", url: "https://chatgpt.com/c/one" }
       ],
       archived: []
-    },
-    activeAccounts: { chatgpt: "user@example.com" }
+    }
   };
 
   async function flushPromises() {
@@ -153,7 +151,7 @@ test("sidepanel 忽略已过期的重叠渲染", async () => {
       runtime: {
         onMessage: { addListener(listener) { messageListeners.push(listener); } },
         sendMessage(message, callback) {
-          callback({ supported: true, provider: "chatgpt", hasAccount: true, account: "user@example.com", hasHistory: true });
+          callback({ supported: true, provider: "chatgpt", hasHistory: true });
         }
       },
       storage: {
@@ -204,12 +202,11 @@ test("sidepanel 渲染混合 provider 记录并设置 inline badge 颜色", asyn
   const storedState = {
     folders: {
       unclassified: [
-        { provider: "chatgpt", account: "u@example.com", title: "ChatGPT 聊天", url: "https://chatgpt.com/c/a" },
-        { provider: "gemini",  account: "u@example.com", title: "Gemini 聊天",  url: "https://gemini.google.com/app/a" }
+        { provider: "chatgpt", title: "ChatGPT 聊天", url: "https://chatgpt.com/c/a" },
+        { provider: "gemini",  title: "Gemini 聊天",  url: "https://gemini.google.com/app/a" }
       ],
       archived: []
-    },
-    activeAccounts: { chatgpt: "u@example.com", gemini: "u@example.com" }
+    }
   };
 
   function createElement(tagName) {
@@ -250,7 +247,7 @@ test("sidepanel 渲染混合 provider 记录并设置 inline badge 颜色", asyn
       runtime: {
         onMessage: { addListener(listener) { messageListeners.push(listener); } },
         sendMessage(message, callback) {
-          callback({ supported: true, provider: "chatgpt", hasAccount: true, account: "u@example.com", hasHistory: true });
+          callback({ supported: true, provider: "chatgpt", hasHistory: true });
         }
       },
       storage: {
@@ -293,7 +290,6 @@ test("sidepanel 主按钮文字跟随启用的 provider 与当前页面状态", 
   let domContentLoadedListener = null;
   const storedState = {
     folders: { unclassified: [], archived: [] },
-    activeAccounts: {},
     settings: {
       defaultProvider: "auto",
       enabledProviders: ["chatgpt", "gemini", "claude", "deepseek", "grok", "kimi", "perplexity", "manus"],
@@ -332,7 +328,7 @@ test("sidepanel 主按钮文字跟随启用的 provider 与当前页面状态", 
     chrome: {
       runtime: {
         onMessage: { addListener() {} },
-        sendMessage(_, cb) { cb({ supported: true, provider: "gemini", hasAccount: true, account: "u@example.com", hasHistory: true }); }
+        sendMessage(_, cb) { cb({ supported: true, provider: "gemini", hasHistory: true }); }
       },
       storage: {
         local: {
@@ -356,7 +352,7 @@ test("sidepanel 主按钮文字跟随启用的 provider 与当前页面状态", 
 
   vm.runInNewContext(source, context);
   await context.window.LLMNavSidebar.mount(context.document, {
-    pageState: { supported: true, provider: "gemini", hasAccount: true, account: "u@example.com", hasHistory: true }
+    pageState: { supported: true, provider: "gemini", hasHistory: true }
   });
 
   assert.match(elements["new-chat-main"].textContent, /Gemini/);
@@ -368,7 +364,6 @@ test("sidepanel 渲染启用的 quickActions 为按钮", async () => {
   let domContentLoadedListener = null;
   const storedState = {
     folders: { unclassified: [], archived: [] },
-    activeAccounts: {},
     settings: {
       defaultProvider: "auto",
       enabledProviders: ["chatgpt", "gemini"],

@@ -12,8 +12,6 @@
       { id: "claude.design", label: "设计", url: "https://claude.ai/design" }
     ],
     scraping: {
-      accountSelectors: ['[data-testid="user-menu-button"]'],
-      accountDisplaySubSelector: ".block.truncate.text-start",
       historyRootSelector: 'nav[aria-label="Sidebar"]',
       historyLinkSelector: 'a[href^="/chat/"]',
       historyPathPrefix: "/chat/",

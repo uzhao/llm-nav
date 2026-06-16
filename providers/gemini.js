@@ -10,12 +10,6 @@
       { id: "gemini.notebooks", label: "笔记本", url: "https://gemini.google.com/notebooks/view" }
     ],
     scraping: {
-      accountSelectors: [
-        'a[gem-open-account-menu]',
-        'a[aria-label*="Google 账号"]',
-        'a[aria-label*="Google Account"]'
-      ],
-      accountDisplaySubSelector: ".mavatar-user-name",
       historyRootSelector: 'bard-sidenav',
       historyLinkSelector: 'a[href^="/app/"], a[href^="https://gemini.google.com/app/"]',
       historyPathPrefix: "/app/",

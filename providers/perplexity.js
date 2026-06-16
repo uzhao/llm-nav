@@ -10,8 +10,6 @@
       { id: "perplexity.computer", label: "computer", url: "https://www.perplexity.ai/computer/tasks" }
     ],
     scraping: {
-      accountSelectors: ['button:has(img[alt="用户头像"])', 'button:has(img[alt="User avatar"])'],
-      accountDisplaySubSelector: ".font-sans.truncate",
       historyRootSelector: 'nav[aria-label="主导航"], nav[aria-label="Main navigation"]',
       historyLinkSelector: 'a[href^="/search/"]',
       historyPathPrefix: "/search/",

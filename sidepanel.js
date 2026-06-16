@@ -91,7 +91,7 @@ async function init(options) {
       }
     }
 
-    if (changes.folders || changes.activeAccounts) {
+    if (changes.folders) {
       render();
     }
   });
@@ -402,15 +402,7 @@ async function render() {
     return;
   }
 
-  const providerStatuses = {};
-  if (pageState && pageState.supported && pageState.provider) {
-    providerStatuses[pageState.provider] = {
-      hasAccount: Boolean(pageState.hasAccount),
-      account: pageState.account || ""
-    };
-  }
-
-  const folders = LLMNavModel.filterFoldersAcrossProviders(state, providerStatuses);
+  const folders = LLMNavModel.filterFoldersForProviders(state, settings.enabledProviders);
 
   renderNoticeForPageState();
 
@@ -426,23 +418,12 @@ function renderNoticeForPageState() {
     return;
   }
 
-  const provider = getProvider(pageState.provider);
-  const providerLabel = provider ? provider.label : pageState.provider;
-  const messages = [];
-
-  if (pageState.hasAccount === false) {
-    messages.push(`无法获取 ${providerLabel} 账号,当前显示 ${providerLabel} 的全部本地对话,可能包含其他账号。`);
-  }
-
   if (pageState.hasHistory === false) {
-    messages.push("未检测到可见历史,已保留已有本地数据。");
+    showNotice("未检测到可见历史,已保留已有本地数据。");
+    return;
   }
 
-  if (messages.length > 0) {
-    showNotice(messages.join(" "));
-  } else {
-    hideNotice();
-  }
+  hideNotice();
 }
 
 function renderFolder(folderName, records) {
@@ -595,8 +576,7 @@ function renderConversation(record) {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("application/json", JSON.stringify({
       provider: record.provider,
-      url: record.url,
-      account: record.account
+      url: record.url
     }));
   });
 
@@ -636,7 +616,7 @@ async function handleDrop(event, targetFolder) {
 
   const data = JSON.parse(raw);
   const state = await loadState();
-  const next = LLMNavModel.moveConversation(state, data.provider, data.url, targetFolder, data.account);
+  const next = LLMNavModel.moveConversation(state, data.provider, data.url, targetFolder);
   await saveState(next);
   await render();
 }
@@ -688,10 +668,9 @@ function toggleCollapse() {
 
 async function loadState() {
   try {
-    const stored = await chrome.storage.local.get(["folders", "activeAccounts"]);
+    const stored = await chrome.storage.local.get(["folders"]);
     return LLMNavModel.cloneState({
-      folders: stored.folders,
-      activeAccounts: stored.activeAccounts
+      folders: stored.folders
     });
   } catch (err) {
     if (err.message && err.message.includes("Extension context invalidated")) {
@@ -705,8 +684,7 @@ async function loadState() {
 async function saveState(state) {
   try {
     await chrome.storage.local.set({
-      folders: state.folders,
-      activeAccounts: state.activeAccounts
+      folders: state.folders
     });
   } catch (err) {
     if (err.message && err.message.includes("Extension context invalidated")) {

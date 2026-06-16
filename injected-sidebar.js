@@ -15,6 +15,17 @@
   if (!provider) {
     return;
   }
+
+  if (provider.scraping && provider.scraping.hideSidebarSelector) {
+    const style = document.createElement("style");
+    style.textContent = `
+      ${provider.scraping.hideSidebarSelector} {
+        display: none !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
   const HOST_ID = "llmnav-host";
   const HANDLE_ID = "llmnav-handle";
   const COLLAPSE_KEY = "llmnav:sidebarCollapsed";
@@ -24,41 +35,6 @@
 
   const scraping = provider.scraping;
   let syncTimer = 0;
-
-  function extractEmail(text) {
-    const match = String(text || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-    return match ? match[0].toLowerCase() : "";
-  }
-
-  function normalizeAccountName(text) {
-    return String(text || "")
-      .replace(/\s+/g, " ")
-      .replace(/^Google\s*(?:账号|账户|Account)\s*[:：]?\s*/i, "")
-      .replace(/\s*(?:个人帐户|个人账户|Personal account).*$/i, "")
-      .replace(/\s*[,，]?\s*(?:打开|Open).*$/i, "")
-      .replace(/\s*\([^)]*@[^)]*\)\s*$/, "")
-      .trim();
-  }
-
-  function scrapeAccount() {
-    for (const selector of scraping.accountSelectors) {
-      for (const element of document.querySelectorAll(selector)) {
-        const rawText = `${element.getAttribute("aria-label") || ""} ${element.textContent || ""}`;
-        const email = extractEmail(rawText);
-        if (email) return email;
-
-        if (scraping.accountDisplaySubSelector) {
-          const node = element.querySelector(scraping.accountDisplaySubSelector);
-          const displayName = normalizeAccountName(node ? node.textContent : "");
-          if (displayName) return displayName;
-        }
-
-        const ariaName = normalizeAccountName(element.getAttribute("aria-label"));
-        if (ariaName) return ariaName;
-      }
-    }
-    return "";
-  }
 
   function scrapeVisibleHistory() {
     const seen = new Set();
@@ -120,30 +96,25 @@
   }
 
   async function syncVisibleHistory() {
-    const account = scrapeAccount();
     const records = scrapeVisibleHistory();
 
     if (window.LLMNavSidebar && window.LLMNavSidebar.updatePageState) {
       window.LLMNavSidebar.updatePageState({
         supported: true,
         provider: provider.name,
-        hasAccount: Boolean(account),
-        account: account || "",
         hasHistory: records.length > 0
       });
     }
 
     try {
-      const stored = await chrome.storage.local.get(["folders", "activeAccounts"]);
+      const stored = await chrome.storage.local.get(["folders"]);
       const next = window.LLMNavModel.upsertVisibleConversations(
-        { folders: stored.folders, activeAccounts: stored.activeAccounts },
+        { folders: stored.folders },
         provider.name,
-        account,
         records
       );
       await chrome.storage.local.set({
-        folders: next.folders,
-        activeAccounts: next.activeAccounts
+        folders: next.folders
       });
     } catch (error) {
       void error;
@@ -193,8 +164,7 @@
         position: fixed !important;
         left: 0 !important;
         top: 0 !important;
-        width: min(360px, 22vw) !important;
-        min-width: 260px !important;
+        width: 360px !important;
         height: 100vh !important;
         z-index: 2147483646 !important;
       }
@@ -274,8 +244,6 @@
         pageState: {
           supported: true,
           provider: provider.name,
-          hasAccount: Boolean(scrapeAccount()),
-          account: scrapeAccount() || "",
           hasHistory: scrapeVisibleHistory().length > 0
         },
         navigate: (url) => {

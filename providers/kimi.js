@@ -15,8 +15,6 @@
       { id: "kimi.agent-swarm", label: "agent集群", url: "https://www.kimi.com/agent-swarm" }
     ],
     scraping: {
-      accountSelectors: [".user-info-container"],
-      accountDisplaySubSelector: ".user-name",
       historyRootSelector: "aside.sidebar",
       historyLinkSelector: 'a.chat-info-item[href^="/chat/"]',
       historyPathPrefix: "/chat/",

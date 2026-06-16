@@ -7,7 +7,6 @@
 
   root.LLMNavModel = api;
 })(typeof globalThis !== "undefined" ? globalThis : self, function () {
-  const UNKNOWN_ACCOUNT = "unknown";
   const SYSTEM_FOLDERS = ["unclassified", "archived"];
 
   function createInitialState() {
@@ -15,14 +14,8 @@
       folders: {
         unclassified: [],
         archived: []
-      },
-      activeAccounts: {}
+      }
     };
-  }
-
-  function normalizeAccount(account) {
-    const value = String(account || "").trim();
-    return value || UNKNOWN_ACCOUNT;
   }
 
   function normalizeTitle(title) {
@@ -43,7 +36,6 @@
       folders[folderName] = Array.isArray(sourceFolders[folderName])
         ? sourceFolders[folderName].map((record) => ({
             provider: record.provider,
-            account: normalizeAccount(record.account),
             title: normalizeTitle(record.title),
             url: normalizeUrl(record.url)
           }))
@@ -56,16 +48,12 @@
       }
     });
 
-    return {
-      folders,
-      activeAccounts: { ...(input.activeAccounts || {}) }
-    };
+    return { folders };
   }
 
-  function normalizeRecord(record, provider, account) {
+  function normalizeRecord(record, provider) {
     return {
       provider,
-      account: normalizeAccount(account),
       title: normalizeTitle(record.title),
       url: normalizeUrl(record.url)
     };
@@ -75,44 +63,29 @@
     return SYSTEM_FOLDERS.includes(folderName);
   }
 
-  function findRecordLocation(state, provider, url, account) {
+  function findRecordLocation(state, provider, url) {
     const normalizedUrl = normalizeUrl(url);
-    const normalizedAccount = normalizeAccount(account);
 
     for (const [folderName, records] of Object.entries(state.folders)) {
-      const index = records.findIndex((record) => record.provider === provider && record.url === normalizedUrl && normalizeAccount(record.account) === normalizedAccount);
+      const index = records.findIndex((record) => record.provider === provider && record.url === normalizedUrl);
       if (index !== -1) {
         return { folderName, index };
-      }
-    }
-
-    if (normalizedAccount !== UNKNOWN_ACCOUNT) {
-      for (const [folderName, records] of Object.entries(state.folders)) {
-        const index = records.findIndex((record) => record.provider === provider && record.url === normalizedUrl && normalizeAccount(record.account) === UNKNOWN_ACCOUNT);
-        if (index !== -1) {
-          return { folderName, index };
-        }
       }
     }
 
     return null;
   }
 
-  function upsertVisibleConversations(state, provider, account, records) {
+  function upsertVisibleConversations(state, provider, records) {
     const next = cloneState(state);
-    const normalizedAccount = normalizeAccount(account);
     const normalizedRecords = records
-      .map((record) => normalizeRecord(record, provider, normalizedAccount))
+      .map((record) => normalizeRecord(record, provider))
       .filter((record) => record.url);
-
-    if (normalizedAccount !== UNKNOWN_ACCOUNT) {
-      next.activeAccounts[provider] = normalizedAccount;
-    }
 
     const visibleUrls = new Set(normalizedRecords.map((record) => record.url));
     Object.keys(next.folders).forEach((folderName) => {
       next.folders[folderName] = next.folders[folderName].filter((record) => {
-        if (record.provider !== provider || normalizeAccount(record.account) !== normalizedAccount) {
+        if (record.provider !== provider) {
           return true;
         }
 
@@ -123,17 +96,14 @@
     const newRecords = [];
 
     normalizedRecords.forEach((normalized) => {
-      const location = findRecordLocation(next, provider, normalized.url, normalized.account);
+      const location = findRecordLocation(next, provider, normalized.url);
       if (!location) {
         newRecords.push(normalized);
         return;
       }
 
-      const existing = next.folders[location.folderName][location.index];
-      const existingAccount = normalizeAccount(existing.account);
       next.folders[location.folderName][location.index] = {
         provider,
-        account: existingAccount === UNKNOWN_ACCOUNT && normalized.account !== UNKNOWN_ACCOUNT ? normalized.account : existingAccount,
         title: normalized.title,
         url: normalized.url
       };
@@ -190,11 +160,9 @@
     return next;
   }
 
-  function moveConversation(state, provider, url, targetFolder, account) {
+  function moveConversation(state, provider, url, targetFolder) {
     const next = cloneState(state);
     const normalizedUrl = normalizeUrl(url);
-    const hasAccount = arguments.length >= 5;
-    const normalizedAccount = normalizeAccount(account);
 
     if (!next.folders[targetFolder]) {
       return next;
@@ -205,10 +173,6 @@
     for (const [folderName, records] of Object.entries(next.folders)) {
       records.forEach((record, index) => {
         if (record.provider !== provider || record.url !== normalizedUrl) {
-          return;
-        }
-
-        if (hasAccount && normalizeAccount(record.account) !== normalizedAccount) {
           return;
         }
 
@@ -227,46 +191,13 @@
     return next;
   }
 
-  function filterFoldersForProvider(state, provider, accountStatus) {
+  function filterFoldersForProviders(state, providerNames) {
     const next = cloneState(state);
-    const activeAccount = normalizeAccount((accountStatus && accountStatus.account) || next.activeAccounts[provider]);
-    const shouldFilterByAccount = !(accountStatus && accountStatus.hasAccount === false) && activeAccount !== UNKNOWN_ACCOUNT;
+    const allowed = new Set(providerNames || []);
     const filtered = {};
 
     Object.entries(next.folders).forEach(([folderName, records]) => {
-      filtered[folderName] = records.filter((record) => {
-        if (record.provider !== provider) {
-          return false;
-        }
-
-        if (!shouldFilterByAccount) {
-          return true;
-        }
-
-        return normalizeAccount(record.account) === activeAccount;
-      });
-    });
-
-    return filtered;
-  }
-
-  function filterFoldersAcrossProviders(state, providerStatuses) {
-    const next = cloneState(state);
-    const statuses = providerStatuses || {};
-    const filtered = {};
-
-    Object.entries(next.folders).forEach(([folderName, records]) => {
-      filtered[folderName] = records.filter((record) => {
-        const status = statuses[record.provider];
-        const activeAccount = normalizeAccount((status && status.account) || next.activeAccounts[record.provider]);
-        const shouldFilterByAccount = !(status && status.hasAccount === false) && activeAccount !== UNKNOWN_ACCOUNT;
-
-        if (!shouldFilterByAccount) {
-          return true;
-        }
-
-        return normalizeAccount(record.account) === activeAccount;
-      });
+      filtered[folderName] = records.filter((record) => allowed.has(record.provider));
     });
 
     return filtered;
@@ -315,7 +246,6 @@
   }
 
   return {
-    UNKNOWN_ACCOUNT,
     SYSTEM_FOLDERS,
     createInitialState,
     cloneState,
@@ -326,8 +256,7 @@
     normalizeSettings,
     upsertVisibleConversations,
     moveConversation,
-    filterFoldersForProvider,
-    filterFoldersAcrossProviders,
+    filterFoldersForProviders,
     getFolderOrder
   };
 });

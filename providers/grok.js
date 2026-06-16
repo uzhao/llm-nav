@@ -10,8 +10,6 @@
       { id: "grok.imagine", label: "图片", url: "https://grok.com/imagine" }
     ],
     scraping: {
-      accountSelectors: ['button:has(img[alt="pfp"])'],
-      accountDisplaySubSelector: null,
       historyRootSelector: 'div[data-variant="sidebar"]',
       historyLinkSelector: 'a[href^="/c/"]',
       historyPathPrefix: "/c/",
